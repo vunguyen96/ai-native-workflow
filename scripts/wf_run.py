@@ -10,6 +10,7 @@ Commands (run from the project root):
   start    --ticket T [--run N] [--auto-approve] [--verbose]   start one worker per lane and wait
   worker   --ticket T --lane L                                 run one lane's loop by hand (what start spawns)
   ready    --ticket T [--artifact ticket-context.md]           intake: mark the ticket context ready
+  recheck  --ticket T                                          sync artifact frontmatter status to the manifest
   approve  --ticket T [--gate planner|reviewer] [--by NAME]    human gate: approve and move on
   reject   --ticket T --gate planner|reviewer --reason TEXT    human gate: send the work back
   answer   --ticket T --lane L [--text TEXT]                   unblock a lane after a question_raised
@@ -22,6 +23,7 @@ Commands (run from the project root):
 --auto-approve plays the human at every gate. It is for testing the flow only.
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -169,13 +171,233 @@ def record_outputs(run, cfg, kind, lane, repo, started, who):
     return marked, expected
 
 
+def repo_checkout(run, repo):
+    """Find a registered checkout, or the matching seeded demo repo."""
+    local = load_cfg("repos.local.yaml").get("repos") or {}
+    candidates = []
+    if local.get(repo, {}).get("local_path"):
+        candidates.append(Path(os.path.expandvars(os.path.expanduser(local[repo]["local_path"]))))
+    if os.environ.get("WF_REPOS_ROOT"):
+        candidates.append(Path(os.environ["WF_REPOS_ROOT"]) / repo)
+    candidates.append(ROOT / "demo" / "seed" / repo)
+    return next((path.resolve() for path in candidates if path.is_dir()), None)
+
+
+def repo_worktree_hash(path):
+    """Return a content hash for uncommitted tracked and untracked repository changes."""
+    root = subprocess.run(
+        ["git", "-C", str(path), "rev-parse", "--show-toplevel"],
+        capture_output=True,
+    )
+    if root.returncode:
+        detail = root.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(f"cannot locate Git root for {path}: {detail}")
+    git_root = Path(os.fsdecode(root.stdout).strip())
+    pathspec = path.relative_to(git_root).as_posix() or "."
+    status = subprocess.run(
+        ["git", "-C", str(git_root), "status", "--porcelain=v1", "--untracked-files=all", "--", pathspec],
+        capture_output=True,
+    )
+    if status.returncode:
+        detail = status.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(f"cannot inspect repo changes in {path}: {detail}")
+    if not status.stdout:
+        return None
+
+    diff = subprocess.run(
+        ["git", "-C", str(git_root), "diff", "--binary", "HEAD", "--", pathspec],
+        capture_output=True,
+    )
+    if diff.returncode:
+        detail = diff.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(f"cannot hash repo changes in {path}: {detail}")
+    untracked = subprocess.run(
+        ["git", "-C", str(git_root), "ls-files", "--others", "--exclude-standard", "-z", "--", pathspec],
+        capture_output=True,
+        check=True,
+    ).stdout
+    digest = hashlib.sha256(status.stdout + diff.stdout)
+    for relative in untracked.split(b"\0"):
+        if relative:
+            digest.update(relative)
+            digest.update((git_root / os.fsdecode(relative)).read_bytes())
+    return digest.hexdigest()[:8]
+
+
+def recheck_artifacts(run):
+    """Apply draft/ready states declared in artifact frontmatter to the manifest."""
+    manifest = run.load()
+    artifacts = manifest.get("artifacts") or {}
+    config = S.load_yaml(ROOT / "config" / "lanes.yaml")
+    inputs = config.get("artifact_inputs") or {}
+    synced = []
+    observed = {}
+
+    tasks_path = S.artifact_path(run.dir, "tasks.md")
+    task_repos = []
+    if tasks_path is not None and str(manifest.get("kind") or "story") != "spike":
+        rows = tasks_path.read_text(encoding="utf-8").splitlines()
+        repo_column = None
+        for line in rows:
+            if not line.strip().startswith("|"):
+                continue
+            cells = [cell.strip().strip("`") for cell in line.strip().strip("|").split("|")]
+            if repo_column is None:
+                if "repo" in [cell.lower() for cell in cells]:
+                    repo_column = [cell.lower() for cell in cells].index("repo")
+                continue
+            if all(not cell or set(cell) <= {"-", ":"} for cell in cells):
+                continue
+            if repo_column < len(cells):
+                for repo in cells[repo_column].split(","):
+                    repo = repo.strip().strip("`")
+                    if repo and repo not in ("-", "none") and repo not in task_repos:
+                        task_repos.append(repo)
+
+        _, release_sequence, _ = tasks_release(run)
+        for repo in release_sequence:
+            if repo not in task_repos:
+                task_repos.append(repo)
+
+    for name, entry in artifacts.items():
+        if not isinstance(entry, dict):
+            continue
+        if name == "changes":
+            for repo, repo_entry in (entry.get("per_repo") or {}).items():
+                if not isinstance(repo_entry, dict) or repo_entry.get("status", "missing") in (
+                    "missing", "approved", "rejected",
+                ):
+                    continue
+                path = S.artifact_path(run.dir, f"changes/{repo}")
+                if path is None or not path.is_dir():
+                    checkout = repo_checkout(run, repo)
+                    if checkout is not None and repo_worktree_hash(checkout):
+                        continue
+                    run.mark("changes", "missing", inputs=(), repo=repo)
+                    run.event("orchestrator", "artifact_status_synced", {
+                        "artifact": f"changes/{repo}", "status": "missing", "source": "file_missing",
+                    })
+                    synced.append((f"changes/{repo}", "missing"))
+            continue
+        current = entry.get("status", "missing")
+        path = S.artifact_path(run.dir, name)
+        if path is None or not path.is_file():
+            if current != "missing":
+                run.mark(name, "missing", inputs=())
+                run.event("orchestrator", "artifact_status_synced", {
+                    "artifact": name, "status": "missing", "source": "file_missing",
+                })
+                synced.append((name, "missing"))
+            continue
+        if name == "ticket-context.md":
+            continue
+        lines = path.read_text(encoding="utf-8").splitlines()
+        if not lines or lines[0].strip() != "---":
+            if current == "missing" and path.stat().st_size > 0:
+                run.mark(name, "draft", inputs=inputs.get(name, []))
+                run.event("orchestrator", "artifact_status_synced", {
+                    "artifact": name, "status": "draft", "source": "file_present",
+                })
+                synced.append((name, "draft"))
+            continue
+        try:
+            end = lines.index("---", 1)
+        except ValueError as exc:
+            raise ValueError(f"{name}: frontmatter has no closing --- delimiter") from exc
+        metadata = yaml.safe_load("\n".join(lines[1:end])) or {}
+        if not isinstance(metadata, dict):
+            raise ValueError(f"{name}: frontmatter must contain a YAML mapping")
+        status = metadata.get("status")
+        if status not in ("draft", "ready"):
+            if current == "missing" and path.stat().st_size > 0:
+                run.mark(name, "draft", inputs=inputs.get(name, []))
+                run.event("orchestrator", "artifact_status_synced", {
+                    "artifact": name, "status": "draft", "source": "file_present",
+                })
+                synced.append((name, "draft"))
+            continue
+        observed[name] = status
+        if status == "ready" and PLACEHOLDER.search("\n".join(lines[end + 1:])):
+            raise ValueError(f"{name} still has template placeholders; it cannot be marked ready")
+
+        if current in ("missing", "draft", "ready"):
+            recorded_hash = entry.get("hash")
+            current_hash = W.short_hash(path)
+            if status != current or current_hash != recorded_hash:
+                run.mark(name, status, inputs=inputs.get(name, []))
+                run.event("orchestrator", "artifact_status_synced", {
+                    "artifact": name, "status": status, "source": "frontmatter",
+                })
+                synced.append((name, status))
+
+    existing_repos = list((((run.load().get("artifacts") or {}).get("changes") or {}).get("per_repo") or {}))
+    for repo in dict.fromkeys(task_repos + existing_repos):
+        path = S.artifact_path(run.dir, f"changes/{repo}")
+        expected = ("diff.patch", "notes.md", "local-verify.md")
+        present = [name for name in expected if path is not None and (path / name).is_file()]
+        checkout = repo_checkout(run, repo)
+        source_hash = repo_worktree_hash(checkout) if checkout is not None else None
+        status = "ready" if len(present) == len(expected) else (
+            "draft" if present or source_hash else "missing"
+        )
+        repo_entry = ((run.load().get("artifacts") or {}).get("changes") or {}).get("per_repo", {}).get(repo) or {}
+        current = repo_entry.get("status", "missing")
+        current_hash = W.short_hash(path) if path is not None and path.is_dir() else None
+        if current not in ("approved", "rejected") and (
+            not repo_entry or status != current or current_hash != repo_entry.get("hash")
+            or source_hash != repo_entry.get("source_hash")
+        ):
+            run.mark("changes", status, inputs=inputs.get("changes", []), repo=repo)
+            run.update(lambda manifest, repo=repo, source_hash=source_hash:
+                       manifest["artifacts"]["changes"]["per_repo"][repo].update(
+                           {"source_hash": source_hash} if source_hash else {}
+                       ))
+            if not source_hash:
+                run.update(lambda manifest, repo=repo:
+                           manifest["artifacts"]["changes"]["per_repo"][repo].pop("source_hash", None))
+            run.event("orchestrator", "artifact_status_synced", {
+                "artifact": f"changes/{repo}", "status": status,
+                "source": "repo_checkout" if source_hash and not present else "repo_change_outputs",
+                "source_hash": source_hash,
+            })
+            synced.append((f"changes/{repo}", status))
+
+    review_entry = ((run.load().get("artifacts") or {}).get("review-report.md") or {})
+    if isinstance(review_entry, dict) and review_entry.get("status") in ("ready", "approved"):
+        copy_review_decision(run, "orchestrator")
+
+    lanes = (manifest.get("lanes") or {})
+    for lane, definition in (config.get("lanes") or {}).items():
+        lane_entry = lanes.get(lane) or {}
+        if lane_entry.get("status") != "failed":
+            continue
+        outputs = [S.artifact_key(S.split_token(token)[0], set(artifacts))
+                   for token in definition.get("produces") or []]
+        outputs = [name for name in outputs if name]
+        recovered = [name for name in outputs if observed.get(name) in ("draft", "ready")]
+        if recovered:
+            run.set_lane(lane, "waiting")
+            run.update(lambda current_manifest, lane=lane: current_manifest.setdefault("lanes", {})
+                       .setdefault(lane, {}).update(retry_after_recheck=True))
+            run.event("orchestrator", "lane_reopened", {
+                "lane": lane, "artifacts": recovered, "reason": "artifact progress found during recheck",
+            })
+            say("orchestrator", f"reopened {lane} after finding updated artifacts")
+
+    if synced:
+        for name, status in synced:
+            say("orchestrator", f"synced {name}: {status}")
+    else:
+        say("orchestrator", "no artifact status changes found in frontmatter")
+
+
 # ---------------------------------------------------------------- one session
 
 def run_unit(run, cfg, kind, runner, budgets, lane, repo, who, verbose):
     unit = f"{lane}-{repo}" if repo else lane
     attempt = run.attempts_done(lane, repo) + 1
     max_attempts = int((budgets.get("per_lane") or {}).get("max_attempts", 3))
-    if attempt > max_attempts:
+    if run.attempts_in_cycle(lane, repo) + 1 > max_attempts:
         run.set_lane(lane, "failed")
         run.event("orchestrator", "lane_failed", {"lane": lane, "repo": repo, "reason": f"more than {max_attempts} attempts"})
         say(who, f"{unit}: gave up after {max_attempts} attempts; escalating")
@@ -392,7 +614,7 @@ def do_accept(run, by):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=["start", "worker", "command", "ready", "approve", "reject", "answer", "enable", "accept", "deployed", "status"])
+    ap.add_argument("command", choices=["start", "worker", "command", "ready", "recheck", "approve", "reject", "answer", "enable", "accept", "deployed", "status"])
     ap.add_argument("--ticket", required=True)
     ap.add_argument("--run", type=int, default=None)
     ap.add_argument("--lane", default="")
@@ -428,6 +650,8 @@ def main():
         return
     if args.command == "start":
         return start(args, run)
+    if args.command == "recheck":
+        return recheck_artifacts(run)
     if args.command == "ready":
         p = run.art / args.artifact
         if not p.exists():

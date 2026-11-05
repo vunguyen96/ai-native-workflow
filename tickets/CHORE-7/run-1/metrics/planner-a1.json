@@ -1,0 +1,42 @@
+{
+  "aiu": 0.3162,
+  "attempt": 1,
+  "chat_calls": 6,
+  "conversation_ids": [
+    "98a12cbf-fb67-4f63-bfae-ad78b3524d8c"
+  ],
+  "copilot_cost": 6.0,
+  "credit_attributes_found": [
+    "github.copilot.cost",
+    "github.copilot.nano_aiu"
+  ],
+  "dump": "otel-dump/CHORE-7/run-1/planner-a1-07e9268e429a.jsonl",
+  "kind": "chore",
+  "lane": "planner",
+  "launch_id": "07e9268e429a",
+  "lines": 47,
+  "metric_records": 19,
+  "models": [
+    "gpt-6-luna"
+  ],
+  "nano_aiu": 316210500,
+  "otel_status": "ok",
+  "overlay": [],
+  "problems": [],
+  "repo": "",
+  "run": 1,
+  "spans": 28,
+  "ticket": "CHORE-7",
+  "tokens_cache_read": 48443,
+  "tokens_cache_write": 13279,
+  "tokens_in": 61740,
+  "tokens_out": 2032,
+  "tokens_reasoning": 781,
+  "tool_calls": 19,
+  "tools": {
+    "apply_patch": 2,
+    "glob": 8,
+    "view": 9
+  },
+  "unparsable_lines": 0
+}

@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workflow playbook</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg:#0e1120; --panel:#171b30; --panel2:#1e2340; --line:#2d3558; --text:#e9ecf8; --mute:#8d96bb;
+  --blue:#5b9dff; --green:#41d392; --amber:#ffb454; --red:#ff6b7d; --violet:#a78bfa; --grey:#667092; --teal:#3dd6d0;
+  --shadow:0 18px 50px #05060d66;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(1100px 600px at 85% -15%,#5b9dff18,transparent 65%),radial-gradient(900px 600px at -5% 110%,#a78bfa12,transparent 65%),#0a0c18;color:var(--text);font:15px/1.5 Inter,"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.48;cursor:wait}
+.shell{max-width:1540px;margin:auto;padding:28px 30px 60px}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.08em}
+.brandmark{display:grid;place-items:center;width:38px;height:38px;border:1px solid #5b9dff77;border-radius:12px;background:#5b9dff1a;color:var(--blue)}
+.brand small{display:block;color:var(--mute);font-size:11px;font-weight:600;letter-spacing:.16em}
+.top-actions{display:flex;align-items:center;gap:12px;color:var(--mute)}
+.online{display:inline-flex;align-items:center;gap:8px}.online i,.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green)}
+.layout{display:grid;grid-template-columns:255px minmax(0,1fr);gap:22px;align-items:start}
+.panel,.card{background:linear-gradient(145deg,#191d33f2,#14182a);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.sidebar{padding:18px;position:sticky;top:20px}
+.section-label,.eyebrow{font-size:11px;color:var(--mute);font-weight:750;letter-spacing:.15em;text-transform:uppercase}
+.section-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.ticket-list{display:grid;gap:7px;max-height:48vh;overflow:auto}
+.ticket-link{display:block;width:100%;text-align:left;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--text);padding:10px 11px}
+.ticket-link:hover,.ticket-link.active{background:#242b52;border-color:#35406b}
+.ticket-link strong{display:block;font-size:13px}.ticket-link span{font-size:11px;color:var(--mute)}
+.create{border-top:1px solid var(--line);margin-top:18px;padding-top:18px}
+.main{min-width:0}
+.hero{padding:25px 27px;margin-bottom:17px;position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;width:260px;height:260px;border-radius:50%;background:#5b9dff12;right:-90px;top:-150px;pointer-events:none}
+.hero-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+h1{font-size:clamp(24px,3vw,34px);line-height:1.15;letter-spacing:-.04em;margin:5px 0 7px}
+.subtitle{color:var(--mute);max-width:780px}
+.hero-meta{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:18px}
+.pill,.status{display:inline-flex;align-items:center;gap:7px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:#ffffff08;color:var(--mute);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.status:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.status.ready,.status.done,.status.approved,.status.deployed{color:var(--green);border-color:#41d39255;background:#41d39210}
+.status.working{color:var(--violet);border-color:#a78bfa55;background:#a78bfa10}
+.status.draft{color:var(--violet);border-color:#a78bfa55;background:#a78bfa10}
+.status.stale{color:var(--amber);border-color:#ffb45455;background:#ffb45410}
+.status.blocked,.status.failed,.status.rejected,.status.escalated,.status.error{color:var(--red);border-color:#ff6b7d55;background:#ff6b7d10}
+.status.disabled,.status.waiting,.status.missing,.status.not_required{color:var(--mute)}
+.status.planning,.status.building,.status.verifying,.status.in_review,.status.deploying,.status.investigating,.status.awaiting_findings_review,.status.awaiting_acceptance,.status.needs_input{color:var(--blue);border-color:#5b9dff55;background:#5b9dff10}
+.grid-head{display:flex;align-items:center;justify-content:space-between;margin:24px 2px 11px}
+.grid-head h2{font-size:15px;margin:0}.grid-head .hint{font-size:12px;color:var(--mute)}
+.lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.lane{padding:15px;border-radius:13px;background:#171b30cc;border:1px solid var(--line);min-height:132px;position:relative;overflow:hidden}
+.lane:before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--lane-color,var(--blue))}
+.lane-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lane h3{margin:0;font-size:14px}.lane p{font-size:11px;color:var(--mute);margin:10px 0 0;line-height:1.5}
+.lane .status{font-size:9px;padding:4px 7px}
+.artifact-flow-viewport{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:#101426aa;padding:18px}
+.artifact-flow{position:relative;display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));grid-template-rows:24px repeat(4,minmax(92px,auto));gap:26px 34px;min-width:1000px}
+.flow-phase{z-index:1;color:var(--mute);font-size:10px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
+.artifact-links{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:0}
+.artifact-link{fill:none;stroke:#596486;stroke-width:2;opacity:.72;marker-end:url(#artifact-arrow)}
+.artifact-link.ready{stroke:var(--green)}
+.artifact-link.stale{stroke:var(--amber)}
+.artifact-link.rejected{stroke:var(--red)}
+.artifact-node{position:relative;z-index:1;align-self:stretch;padding:11px;border:1px solid var(--line);border-radius:11px;background:#171b30;min-width:0;box-shadow:0 6px 16px #05060d66}
+.artifact-node.ready,.artifact-node.approved{border-color:#41d39288}
+.artifact-node.draft{border-color:#a78bfa88}
+.artifact-node.stale{border-color:#ffb454aa}
+.artifact-node.rejected{border-color:#ff6b7d99}
+.artifact-node-head{display:flex;align-items:flex-start;justify-content:space-between;gap:7px}
+.artifact-name{font:12px/1.45 "Cascadia Code",Consolas,monospace;overflow-wrap:anywhere}
+.reason{font-size:10px;color:var(--amber);margin-top:5px;max-width:290px}
+.artifact-node .status{font-size:9px;padding:4px 7px}
+.artifact-repos{display:grid;gap:5px;margin-top:9px;padding-top:8px;border-top:1px solid #ffffff12}
+.artifact-repo{display:flex;align-items:center;justify-content:space-between;gap:6px;color:var(--mute);font:10px/1.4 "Cascadia Code",Consolas,monospace}
+.changes{width:100%;border-top:1px solid #ffffff0d;margin-top:9px;padding-top:8px}
+.actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.action-card{padding:15px}.action-card h3{font-size:13px;margin:0 0 5px}.action-card p{color:var(--mute);font-size:11px;margin:0 0 12px}
+.btn{border:1px solid #35406b;border-radius:9px;padding:9px 12px;background:#22294a;color:var(--text);font-size:12px;font-weight:700}
+.btn:hover{background:#2b345d;border-color:#5b9dff99}
+.btn.primary{background:#5b9dff;color:#08101d;border-color:#5b9dff}.btn.primary:hover{background:#77adff}
+.btn.subtle{background:transparent}
+.btn.danger{border-color:#ff6b7d66;color:#ff9daa}
+.field{width:100%;padding:9px 10px;margin-bottom:8px;border:1px solid var(--line);border-radius:8px;background:#0e1120;color:var(--text);outline:none}
+.field:focus{border-color:var(--blue)}
+.field-label{display:block;font-size:11px;color:var(--mute);margin:8px 0 4px}
+.form-row{display:flex;gap:7px}.form-row>*{min-width:0;flex:1}
+.notice{margin:12px 0;padding:11px 13px;border-radius:10px;background:#5b9dff12;border:1px solid #5b9dff35;color:#c7d8ff;font-size:12px}
+.notice.warn{background:#ffb45410;border-color:#ffb45444;color:#ffd9a8}
+.notice.error{background:#ff6b7d10;border-color:#ff6b7d55;color:#ffc1c8}
+.recommendations{padding:16px 18px;margin:12px 0 16px;border:1px solid #5b9dff4d;border-radius:13px;background:linear-gradient(120deg,#5b9dff12,#171b30aa)}
+.recommendations h3{margin:0 0 9px;font-size:14px}
+.recommendations ol{margin:0;padding-left:22px;display:grid;gap:8px}
+.recommendations li{padding-left:3px;color:#d4d9f2;font-size:12px;overflow-wrap:anywhere}
+.recommendations li::marker{color:var(--blue);font-weight:800}
+.recommendations .who{color:var(--mute);font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-right:7px}
+.recommendations .command{display:block;color:#9eacd9;font:11px/1.5 "Cascadia Code",Consolas,monospace;margin-top:3px;overflow-wrap:anywhere}
+.warning-list{display:grid;gap:5px;color:#ffd9a8;font-size:11px;padding-left:17px}
+.empty{padding:32px;text-align:center;color:var(--mute)}
+.joblog{max-height:180px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#090b16;border:1px solid var(--line);border-radius:9px;padding:10px;font:11px/1.45 "Cascadia Code",Consolas,monospace;color:#c4cbea;margin:8px 0 0}
+.jobs{display:grid;gap:8px;margin-top:16px}
+.job{padding:12px;border:1px solid var(--line);border-radius:11px;background:#111426aa}
+.job-head{display:flex;justify-content:space-between;gap:10px;font-size:12px}
+.job-actions{display:flex;justify-content:flex-end;margin-top:10px}
+.history{margin-top:14px;border:1px solid var(--line);border-radius:12px;background:#11142666}
+.history summary{cursor:pointer;padding:12px 14px;color:var(--mute);font-size:12px;font-weight:700}
+.history[open] summary{border-bottom:1px solid var(--line)}
+.history .jobs{padding:0 12px 12px}
+.footer{margin-top:28px;text-align:center;color:#646d91;font-size:11px}
+@media(max-width:850px){.shell{padding:18px 14px 40px}.layout{grid-template-columns:1fr}.sidebar{position:static}.ticket-list{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));max-height:180px}.create{margin-top:12px}.hero-head{display:block}.hero-head>.status{margin-top:12px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand"><div class="brandmark">W</div><div>WORKFLOW <small>PLAYBOOK · LOCAL CONTROL ROOM</small></div></div>
+    <div class="top-actions"><span class="online"><i></i> Connected to local runner</span><button class="btn subtle" id="refresh">Refresh</button></div>
+  </header>
+  <div class="layout">
+    <aside class="panel sidebar">
+      <div class="section-label"><span>Work items</span><span id="ticket-count">0</span></div>
+      <div class="ticket-list" id="ticket-list"></div>
+      <form class="create" id="create-form">
+        <div class="section-label">Create work item</div>
+        <label class="field-label" for="new-ticket">Ticket ID</label>
+        <input class="field" id="new-ticket" name="ticket" required maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9._\-]*" placeholder="PROJ-123">
+        <label class="field-label" for="new-kind">Work kind</label>
+        <div class="form-row"><select class="field" id="new-kind"><option value="story">Story</option><option value="chore">Chore</option><option value="spike">Spike</option></select><button class="btn primary" type="submit">Create</button></div>
+      </form>
+    </aside>
+    <main class="main">
+      <section id="overview"></section>
+      <section id="board"></section>
+      <section id="action-area"></section>
+      <section id="job-area"></section>
+    </main>
+  </div>
+  <div class="footer">Status and readiness are derived from the run manifest, artifacts, and lane contracts. Buttons call the repository's Python workflow scripts.</div>
+</div>
+<script>
+const $ = (selector) => document.querySelector(selector);
+const esc = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const stateClass = (value) => String(value || 'missing').toLowerCase().replace(/[^a-z0-9]+/g, '_');
+let selected = new URLSearchParams(location.search).get('ticket') || '';
+let current = null, knownTickets = [], activeJobs = [], confirmationMessage = '';
+const laneNames = {planner:'Planner', qe:'QE', dev:'Dev', reviewer:'Reviewer', 'inspect-adapt':'Inspect & Adapt'};
+const laneColors = {planner:'#5b9dff', qe:'#3dd6d0', dev:'#41d392', reviewer:'#ffb454', 'inspect-adapt':'#a78bfa'};
+
+async function request(url, options) {
+  const response = await fetch(url, options);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+  return data;
+}
+function pill(value) { return `<span class="status ${stateClass(value)}">${esc(value || 'unknown')}</span>`; }
+function button(label, action, extra = '', cls = '') {
+  return `<button class="btn ${cls}" data-action="${esc(action)}" ${extra}>${esc(label)}</button>`;
+}
+function actionCard(title, description, contents) {
+  return `<article class="card action-card"><h3>${esc(title)}</h3><p>${esc(description)}</p>${contents}</article>`;
+}
+function renderTickets() {
+  $('#ticket-count').textContent = knownTickets.length;
+  $('#ticket-list').innerHTML = knownTickets.length ? knownTickets.map(item =>
+    `<button class="ticket-link ${item.ticket === selected ? 'active' : ''}" data-ticket="${esc(item.ticket)}">
+      <strong>${esc(item.ticket)}</strong><span>${esc(item.kind || 'item')} · ${esc(item.status || 'unknown')}</span>
+    </button>`).join('') : '<div class="empty">No work items yet.<br>Create one to begin.</div>';
+}
+function renderOverview(data) {
+  const status = data.status;
+  $('#overview').innerHTML = `<section class="card hero">
+    <div class="hero-head"><div><div class="eyebrow">Run ${esc(status.run)} · ${esc(status.kind)} · ${esc(status.path)}</div>
+      <h1>${esc(status.ticket)}</h1><div class="subtitle">${esc(status.detail)}</div></div>${pill(status.status)}</div>
+    <div class="hero-meta"><span class="pill">Derived status</span><span class="pill">${esc(status.run)} / current run</span><span class="pill">${Object.keys(status.artifacts || {}).length} artifacts tracked</span></div>
+  </section>`;
+}
+function renderLanes(data) {
+  const lanes = Object.entries(data.lanes || {});
+  const laneHtml = lanes.length ? lanes.map(([key, lane]) => {
+    const repos = Object.entries(lane.repos || {});
+    const repoHtml = repos.map(([repo, item]) => `<div class="changes"><div class="lane-top"><span>${esc(repo)}</span>${pill(item.state)}</div><p>${esc(item.note || '')}</p></div>`).join('');
+    const canRun = (['ready','stale'].includes(lane.state) || lane.resumable) && !lane.unmet?.length
+      && (key !== 'dev' || Object.values(lane.repos || {}).some(repo => ['ready','stale'].includes(repo.state)));
+    return `<article class="lane" style="--lane-color:${laneColors[key] || '#5b9dff'}">
+      <div class="lane-top"><h3>${esc(laneNames[key] || key)}</h3>${pill(lane.state)}</div>
+      <p>${esc(lane.note || (lane.unmet || []).join(' · ') || 'No additional notes.')}</p>${repoHtml}
+      ${canRun && key !== 'inspect-adapt'
+        ? `<div style="margin-top:12px">${button(`${lane.resumable ? 'Resume' : 'Run'} ${laneNames[key] || key} worker`, 'worker', `data-lane="${esc(key)}"`)}</div>`
+        : ''}
+    </article>`;
+  }).join('') : '<div class="empty">Lane state is not available.</div>';
+  $('#board').innerHTML = `<div class="grid-head"><h2>Workflow lanes</h2><span class="hint">Ready means required inputs are present and not stale.</span></div><div class="lanes">${laneHtml}</div>
+    ${renderArtifactFlow(data.artifacts || {})}
+    ${data.warnings?.length ? `<div class="grid-head"><h2>Attention</h2></div><div class="notice warn"><ul class="warning-list">${data.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul></div>` : ''}`;
+  $('#board').querySelectorAll('[data-action]').forEach(el => el.addEventListener('click', () => performAction(el)));
+  requestAnimationFrame(drawArtifactLinks);
+}
+const ARTIFACT_FLOW = [
+  {from:'ticket-context.md',to:'spec.md'},
+  {from:'ticket-context.md',to:'design.md'},
+  {from:'spec.md',to:'design.md'},
+  {from:'ticket-context.md',to:'tasks.md'},
+  {from:'spec.md',to:'tasks.md'},
+  {from:'design.md',to:'tasks.md'},
+  {from:'spec.md',to:'test-plan.md'},
+  {from:'tasks.md',to:'test-plan.md'},
+  {from:'spec.md',to:'changes'},
+  {from:'design.md',to:'changes'},
+  {from:'tasks.md',to:'changes'},
+  {from:'test-plan.md',to:'verify-report.md'},
+  {from:'changes',to:'verify-report.md'},
+  {from:'test-plan.md',to:'review-report.md'},
+  {from:'changes',to:'review-report.md'},
+  {from:'review-report.md',to:'inspection-report.md'},
+  {from:'review-report.md',to:'acceptance-report.md'},
+  {from:'acceptance-report.md',to:'inspection-report.md'}
+];
+const ARTIFACT_POSITIONS = {
+  'ticket-context.md':[1,3], 'spec.md':[2,3], 'design.md':[3,2], 'tasks.md':[3,4],
+  'test-plan.md':[4,2], changes:[4,4], 'verify-report.md':[5,2], 'review-report.md':[5,4],
+  'inspection-report.md':[5,3], 'acceptance-report.md':[5,5]
+};
+function renderArtifactFlow(artifacts) {
+  const phases = [
+    ['Intake',1], ['Plan',2], ['Plan outputs',3], ['Build inputs',4], ['Review & learn',5]
+  ];
+  const nodes = Object.keys(ARTIFACT_POSITIONS).map(name => {
+    const artifact = artifacts[name] || {status:'missing',reason:null};
+    const [column,row] = ARTIFACT_POSITIONS[name];
+    const repoEntries = name === 'changes' ? Object.entries(artifact.repos || {}) : [];
+    const repos = repoEntries.length
+      ? `<div class="artifact-repos">${repoEntries.map(([repo,value]) => `<div class="artifact-repo"><span>${esc(repo)}</span>${pill(value.status)}</div>`).join('')}</div>`
+      : '';
+    return `<article class="artifact-node ${stateClass(artifact.status)}" data-artifact="${esc(name)}" style="grid-column:${column};grid-row:${row}">
+      <div class="artifact-node-head"><span class="artifact-name">${esc(name === 'changes' ? 'changes/<repo>/' : name)}</span>${pill(artifact.status)}</div>
+      ${artifact.reason ? `<div class="reason">${esc(artifact.reason)}</div>` : ''}${repos}
+    </article>`;
+  }).join('');
+  return `<div class="grid-head"><h2>Artifact readiness flow</h2><span class="hint">Arrows show input dependencies from workflow-design.md.</span></div>
+    <div class="hint" style="margin:-3px 2px 10px">Status colors: green ready/approved · purple draft · grey missing · amber stale · red rejected.</div>
+    <div class="artifact-flow-viewport"><div class="artifact-flow">
+      <svg class="artifact-links" aria-hidden="true"><defs><marker id="artifact-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#596486"/></marker></defs></svg>
+      ${phases.map(([label,column]) => `<div class="flow-phase" style="grid-column:${column};grid-row:1">${label}</div>`).join('')}
+      ${nodes}
+    </div></div>`;
+}
+function drawArtifactLinks() {
+  const flow = document.querySelector('.artifact-flow');
+  if (!flow) return;
+  const svg = flow.querySelector('.artifact-links');
+  const defs = svg.querySelector('defs')?.outerHTML || '';
+  const bounds = flow.getBoundingClientRect();
+  const width = flow.scrollWidth, height = flow.scrollHeight;
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.setAttribute('width', width);
+  svg.setAttribute('height', height);
+  svg.innerHTML = defs + ARTIFACT_FLOW.map(({from,to}) => {
+    const source = flow.querySelector(`[data-artifact="${CSS.escape(from)}"]`);
+    const target = flow.querySelector(`[data-artifact="${CSS.escape(to)}"]`);
+    if (!source || !target) return '';
+    const a = source.getBoundingClientRect(), b = target.getBoundingClientRect();
+    const sameColumn = ARTIFACT_POSITIONS[from][0] === ARTIFACT_POSITIONS[to][0];
+    let x1, y1, x2, y2, curve;
+    if (sameColumn) {
+      const movingDown = ARTIFACT_POSITIONS[from][1] < ARTIFACT_POSITIONS[to][1];
+      x1 = a.left + a.width/2 - bounds.left;
+      y1 = (movingDown ? a.bottom : a.top) - bounds.top;
+      x2 = b.left + b.width/2 - bounds.left;
+      y2 = (movingDown ? b.top : b.bottom) - bounds.top;
+      const bend = Math.max(12, Math.abs(y2-y1)*.45);
+      curve = `M${x1},${y1} C${x1},${y1+(movingDown?bend:-bend)} ${x2},${y2-(movingDown?bend:-bend)} ${x2},${y2}`;
+    } else {
+      x1 = a.right - bounds.left; y1 = a.top + a.height/2 - bounds.top;
+      x2 = b.left - bounds.left; y2 = b.top + b.height/2 - bounds.top;
+      const bend = Math.max(18, (x2-x1)*.48);
+      curve = `M${x1},${y1} C${x1+bend},${y1} ${x2-bend},${y2} ${x2},${y2}`;
+    }
+    const status = stateClass(source.className.split(' ').find(name => name !== 'artifact-node') || 'missing');
+    return `<path class="artifact-link ${status}" d="${curve}"/>`;
+  }).join('');
+}
+window.addEventListener('resize', () => requestAnimationFrame(drawArtifactLinks));
+function renderActions(data) {
+  const s = data.status, gates = s.gates || {}, lanes = s.lanes || {};
+  const cards = [];
+  const recommendations = s.next || [];
+  const contextStatus = s.artifacts?.['ticket-context.md']?.status;
+  const contextReady = ['ready','approved'].includes(contextStatus);
+  if (!contextReady) {
+    cards.push(actionCard('Intake', 'After filling the ticket-context artifact, mark it ready for the Planner.', button('Mark ticket context ready', 'ready')));
+  }
+  for (const [gate, info] of Object.entries(gates)) {
+    if (info.state === 'awaiting_approval') {
+      const isPlan = gate === 'planner';
+      const title = isPlan ? 'Approve the plan' : 'Approve the risk-flagged review';
+      const command = `python scripts/wf_run.py approve --ticket ${s.ticket} --run ${s.run} --gate ${gate}`;
+      const reasonId = `reject-reason-${gate}`;
+      const rejectControls = `<label class="field-label" for="${reasonId}">Reason for rejection</label>
+        <textarea class="field" id="${reasonId}" rows="2" maxlength="1000" placeholder="Explain what needs to change"></textarea>
+        ${button(isPlan ? 'Reject plan' : 'Reject review', 'reject', `data-gate="${esc(gate)}"`, 'danger')}`;
+      cards.push(actionCard(title, `Review ${(info.artifacts || []).join(', ')}. Approval runs: ${command}`,
+        `<div class="form-row">${button(isPlan ? 'Approve plan' : 'Approve review', 'approve', `data-gate="${esc(gate)}"`, 'primary')}</div>${rejectControls}`));
+    }
+  }
+  const approvalPending = Object.values(gates).some(info => info.state === 'awaiting_approval');
+  const laneReady = Object.entries(lanes).some(([name, lane]) => {
+    if ((!['ready','stale'].includes(lane.state) && !lane.resumable) || lane.unmet?.length) return false;
+    if (name === 'dev') return Object.values(lane.repos || {}).some(repo => ['ready','stale'].includes(repo.state));
+    return true;
+  });
+  cards.push(actionCard('Recheck workflow status', 'Reconcile readiness for every tracked artifact, record changed hashes, and refresh workflow status.',
+    button('Recheck status', 'recheck')));
+  const inspectLane = lanes['inspect-adapt'];
+  const canLaunchInspect = inspectLane
+    && (['ready','stale'].includes(inspectLane.state) || inspectLane.resumable)
+    && !inspectLane.unmet?.length;
+  cards.push(actionCard(
+    'Inspect & Adapt',
+    'Launch the configured Copilot command through wf_launch.py. The lane must be enabled, the ticket accepted, and its required inputs ready.',
+    button('Launch Inspect & Adapt', 'inspect-adapt', canLaunchInspect ? '' : 'disabled', canLaunchInspect ? 'primary' : '')
+  ));
+  if (contextReady && !approvalPending && laneReady) {
+    cards.push(actionCard('Continue the workflow', 'Start or resume the configured workers. They will pick up lanes that are ready and wait at gates or missing prerequisites.',
+      button('Continue workflow', 'start', '', 'primary')));
+  }
+  for (const [lane, info] of Object.entries(lanes)) {
+    if (info.state === 'blocked') {
+      cards.push(actionCard(`Answer ${laneNames[lane] || lane}`, 'Enter the answer requested by this lane, then the worker can continue.',
+        `<label class="field-label" for="answer-${esc(lane)}">Answer</label><textarea class="field" id="answer-${esc(lane)}" rows="3" maxlength="5000" placeholder="Provide the decision or clarification"></textarea>${button('Submit answer', 'answer', `data-lane="${esc(lane)}"`)}`));
+    }
+  }
+  if (s.status === 'Deploying') {
+    const deployed = s.release?.repos || {};
+    let repos = Object.entries(lanes.dev?.repos || {}).filter(([repo]) => deployed[repo] !== 'deployed');
+    if (s.release?.deploy_order === 'ordered' && s.release?.sequence?.length) {
+      const nextRepo = s.release.sequence.find(repo => deployed[repo] !== 'deployed');
+      repos = repos.filter(([repo]) => repo === nextRepo);
+    }
+    for (const [repo] of repos) {
+      cards.push(actionCard(`Confirm deployment · ${repo}`,
+        'After this repository has been deployed through CI/CD, record the deployment to continue the release.',
+        button(`Confirm ${repo} deployment complete`, 'deployed', `data-repo="${esc(repo)}"`, 'primary')));
+    }
+  }
+  if (s.status === 'Awaiting acceptance') {
+    const command = `python scripts/wf_run.py accept --ticket ${s.ticket}`;
+    cards.push(actionCard('Accept the work item', `Confirm the deployed work is accepted. This records acceptance with: ${command}`,
+      button('Accept ticket', 'accept', '', 'primary')));
+  }
+  const recommendationHtml = recommendations.length
+    ? `<section class="recommendations"><h3>Recommended next steps <span class="hint">(based on the current workflow status)</span></h3>
+        ${confirmationMessage ? `<div class="notice">${esc(confirmationMessage)}</div>` : ''}
+        <ol>${recommendations.map(item => {
+          const text = item.text || '';
+          const commandAt = text.indexOf(': python scripts/');
+          const summary = commandAt < 0 ? text : text.slice(0, commandAt);
+          const command = commandAt < 0 ? '' : `<code class="command">${esc(text.slice(commandAt + 2))}</code>`;
+          const gateDecision = /approve --ticket .+--gate (planner|reviewer)/.test(text);
+          const confirm = item.who?.toLowerCase().startsWith('human') && !gateDecision
+            ? `<div style="margin-top:8px">${button('Confirm action complete & recheck', 'confirm-human', `data-confirm-text="${esc(text)}"`)}</div>`
+            : '';
+          return `<li><span class="who">${esc(item.who || 'next')}</span> ${esc(summary)}${command}${confirm}</li>`;
+        }).join('')}</ol>
+      </section>`
+    : `${confirmationMessage ? `<div class="notice">${esc(confirmationMessage)}</div>` : ''}<div class="notice">No further actions are recommended for this run.</div>`;
+  $('#action-area').innerHTML = `<div class="grid-head"><h2>Playbook controls</h2><span class="hint">Status refreshes automatically; use Recheck status to refresh now.</span></div>
+    ${recommendationHtml}<div class="actions">${cards.join('')}</div>`;
+  $('#action-area').querySelectorAll('[data-action]').forEach(el => el.addEventListener('click', () => performAction(el)));
+}
+function renderJobs() {
+  const running = activeJobs.filter(job => ['running','cancelling'].includes(job.status));
+  const finished = activeJobs.filter(job => !['running','cancelling'].includes(job.status));
+  const renderJob = (job, canCancel) => `<article class="job"><div class="job-head"><strong>${esc(job.label)}</strong>${pill(job.status)}</div>
+    ${job.output ? `<pre class="joblog">${esc(job.output)}</pre>` : ''}
+    ${canCancel ? `<div class="job-actions">${button(job.status === 'cancelling' ? 'Cancelling…' : 'Cancel command', 'cancel', `data-cancel-job="${esc(job.id)}" ${job.status === 'cancelling' ? 'disabled' : ''}`, 'danger')}</div>` : ''}
+  </article>`;
+  $('#job-area').innerHTML = `${running.length ? `<div class="grid-head"><h2>Running command</h2><span class="hint">Cancel stops this command and its child processes.</span></div>
+    <div class="jobs">${running.map(job => renderJob(job, true)).join('')}</div>` : ''}
+    ${finished.length ? `<details class="history"><summary>Command history · ${finished.length}</summary>
+      <div class="jobs">${finished.map(job => renderJob(job, false)).join('')}</div></details>` : ''}`;
+  $('#job-area').querySelectorAll('[data-cancel-job]').forEach(el => el.addEventListener('click', () => cancelJob(el)));
+}
+async function refreshTickets() {
+  const data = await request('/api/tickets');
+  knownTickets = data.tickets || [];
+  renderTickets();
+  if (!selected && knownTickets.length) selected = knownTickets[0].ticket;
+}
+async function refreshStatus() {
+  if (!selected) {
+    current = null;
+    $('#overview').innerHTML = '<section class="card empty"><h1>Choose or create a work item</h1><p>The playbook will show lane readiness, artifact status and the next available actions.</p></section>';
+    $('#board').innerHTML = '';
+    $('#action-area').innerHTML = '';
+    return;
+  }
+  const query = new URLSearchParams({ticket:selected});
+  const data = await request(`/api/status?${query}`);
+  current = data.status;
+  renderOverview(data);
+  renderLanes(current);
+  renderActions(data);
+  renderTickets();
+}
+async function refresh() {
+  try {
+    await refreshTickets();
+    await refreshStatus();
+    $('#ticket-count').title = 'Status refreshed';
+  } catch (error) {
+    $('#overview').innerHTML = `<div class="notice error">${esc(error.message)}</div>`;
+  }
+}
+async function performAction(buttonEl) {
+  if (buttonEl.dataset.action === 'refresh') {
+    await refresh();
+    return;
+  }
+  if (buttonEl.dataset.action === 'confirm-human') {
+    try {
+      await request('/api/action', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          action:'confirm-human',
+          ticket:current.ticket,
+          run:current.run,
+          text:buttonEl.dataset.confirmText
+        })
+      });
+      confirmationMessage = 'Human action confirmed and recorded. Status has been rechecked; any remaining recommendation indicates more work is still needed.';
+      await refreshStatus();
+    } catch (error) {
+      alert(error.message);
+    }
+    return;
+  }
+  if (!current && buttonEl.dataset.action !== 'create') return;
+  const action = {action:buttonEl.dataset.action, ticket:current?.ticket};
+  if (current) action.run = current.run;
+  if (action.action === 'worker') action.lane = buttonEl.dataset.lane;
+  if (action.action === 'approve') action.gate = buttonEl.dataset.gate;
+  if (action.action === 'reject') {
+    action.gate = buttonEl.dataset.gate;
+    action.reason = $(`#reject-reason-${CSS.escape(action.gate)}`).value;
+    if (!action.reason.trim()) { alert('Enter a reason before rejecting.'); return; }
+  }
+  if (action.action === 'deployed') action.repo = buttonEl.dataset.repo;
+  if (action.action === 'answer') {
+    action.lane = buttonEl.dataset.lane;
+    action.text = $(`#answer-${CSS.escape(action.lane)}`).value;
+    if (!action.text.trim()) { alert('Enter an answer before submitting.'); return; }
+  }
+  buttonEl.disabled = true;
+  try {
+    const result = await request('/api/action', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(action)});
+    activeJobs.unshift({id:result.job, label:result.label, status:'running', output:''});
+    renderJobs();
+    watchJob(result.job);
+    setTimeout(refresh, 800);
+  } catch (error) {
+    alert(error.message);
+    buttonEl.disabled = false;
+  }
+}
+async function watchJob(id) {
+  try {
+    const data = await request(`/api/jobs/${encodeURIComponent(id)}`);
+    const job = activeJobs.find(item => item.id === id);
+    if (job) Object.assign(job, data.job);
+    renderJobs();
+    if (['running','cancelling'].includes(job?.status)) setTimeout(() => watchJob(id), 1200);
+    else refresh();
+  } catch (error) {
+    activeJobs.unshift({id, label:'Workflow command', status:'failed', output:error.message});
+    renderJobs();
+  }
+}
+async function cancelJob(buttonEl) {
+  const id = buttonEl.dataset.cancelJob;
+  buttonEl.disabled = true;
+  try {
+    const data = await request(`/api/jobs/${encodeURIComponent(id)}/cancel`, {method:'POST'});
+    const job = activeJobs.find(item => item.id === id);
+    if (job) Object.assign(job, data.job);
+    renderJobs();
+    watchJob(id);
+  } catch (error) {
+    alert(error.message);
+    buttonEl.disabled = false;
+  }
+}
+$('#ticket-list').addEventListener('click', event => {
+  const item = event.target.closest('[data-ticket]');
+  if (!item) return;
+  selected = item.dataset.ticket;
+  history.replaceState(null, '', `?ticket=${encodeURIComponent(selected)}`);
+  refreshStatus();
+});
+$('#refresh').addEventListener('click', refresh);
+$('#create-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const ticket = $('#new-ticket').value.trim(), kind = $('#new-kind').value;
+  const submit = form.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  try {
+    const result = await request('/api/action', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'create', ticket, kind})});
+    selected = ticket;
+    history.replaceState(null, '', `?ticket=${encodeURIComponent(ticket)}`);
+    activeJobs.unshift({id:result.job, label:`Create ${ticket}`, status:'running', output:''});
+    renderJobs();
+    watchJob(result.job);
+    form.reset();
+  } catch (error) { alert(error.message); }
+  finally { submit.disabled = false; }
+});
+refresh();
+setInterval(() => { if (selected) refreshStatus().catch(error => console.error(error)); }, 5000);
+setInterval(() => refreshTickets().catch(error => console.error(error)), 30000);
+</script>
+</body>
+</html>

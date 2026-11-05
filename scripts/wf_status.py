@@ -221,7 +221,17 @@ def build_view(run_dir, manifest, cfg, kind, lane_names, warnings):
         if st not in ART_STATUSES:
             warnings.append(f"artifact {name}: unknown status {st!r} (treated as missing)")
             st = "missing"
-        view[name] = {"status": st, "recorded": st, "reason": None, "entry": a, "repos": {}}
+        recorded = st
+        path = artifact_path(run_dir, str(name))
+        if (
+            st == "missing"
+            and name != "ticket-context.md"
+            and path is not None
+            and path.is_file()
+            and path.stat().st_size > 0
+        ):
+            st = "draft"
+        view[name] = {"status": st, "recorded": recorded, "reason": None, "entry": a, "repos": {}}
 
     ch = view.get("changes")
     if ch:
@@ -383,6 +393,7 @@ def compute_lanes(cfg, kind, lane_names, view, manifest, dev_repos, tele, warnin
             c = Counter(t["otel"] for t in tele[lane])
             extra = ", ".join(f"{n} {k}" for k, n in sorted(c.items()))
             rec["note"] = (rec["note"] + "  " if rec["note"] else "") + f"[sessions: {len(tele[lane])}; otel: {extra}]"
+        rec["resumable"] = bool(ment.get("retry_after_recheck")) and rec["state"] in ("ready", "stale", "working")
         lanes[lane] = rec
     return lanes
 
@@ -521,11 +532,13 @@ def next_actions(ticket, run, kind, lanes, gates, view, manifest, dev_repos, rel
         acts.append(("human", f"Fill artifacts/ticket-context.md, then: python scripts/wf_run.py ready --ticket {ticket} (it is {view['ticket-context.md']['status']})"))
     for lane, rec in lanes.items():
         s = rec["state"]
+        if rec.get("resumable"):
+            acts.append(("agent", f"Resume {lane}: python scripts/wf_run.py worker --ticket {ticket} --run {run} --lane {lane}"))
         if lane == "dev" and rec["repos"]:
             for r, x in rec["repos"].items():
                 if x["state"] in ("ready", "stale") and not rec["unmet"]:
                     acts.append(("agent", ("Re-run " if x["state"] == "stale" else "Run ") + f"dev for {r}: " + launch("dev", r)))
-        elif s in ("ready", "stale") and not rec["unmet"]:
+        elif lane != "dev" and s in ("ready", "stale") and not rec["unmet"]:
             verb = "Re-run" if s == "stale" else "Run"
             acts.append(("agent", f"{verb} {lane}: " + launch(lane)))
     dev = lanes.get("dev") or {}
@@ -719,6 +732,8 @@ def analyze(ticket, run=None):
         arts_out[name] = item
     return {"ticket": ticket, "run": run, "kind": kind, "path": run_dir.relative_to(ROOT).as_posix(),
             "status": status, "detail": detail, "lanes": lanes, "gates": gates, "artifacts": arts_out,
+            "release": {"deploy_order": str(rel.get("deploy_order", "independent")),
+                        "sequence": [str(x) for x in rel.get("sequence") or []], "repos": relrepos},
             "next": [{"who": w, "text": t} for w, t in actions],
             "proposals": [{"time": e["time"], "actor": e["actor"], "event": e["event"], "detail": e["detail"]} for e in proposals],
             "warnings": warnings}

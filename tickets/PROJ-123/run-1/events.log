@@ -1,0 +1,18 @@
+# One event per line, tab-separated: <iso-timestamp>  <actor>  <event>  <json>
+# Agents append proposed events (spec_gap, question_raised, escalate). The orchestrator applies them.
+# The launcher records lane_started / lane_exited with the launch_id used to join telemetry.
+2026-11-05T13:31:02+00:00	system	ticket_created	{"ticket": "PROJ-123", "run": 1, "kind": "story", "origin": "", "prd_refs": []}
+2026-11-05T16:22:39+00:00	vna96	artifact_ready	{"artifact": "ticket-context.md"}
+2026-11-05T16:25:11+00:00	vna96	artifact_ready	{"artifact": "ticket-context.md"}
+2026-11-05T16:25:46+00:00	launcher	lane_started	{"attempt": 1, "command": "copilot", "dump": "otel-dump/PROJ-123/run-1/planner-a1-ef8374649a8c.jsonl", "exporter": "file", "kind": "story", "lane": "planner", "launch_id": "ef8374649a8c", "overlay": [], "repo": ""}
+2026-11-05T16:27:17+00:00	launcher	lane_exited	{"launch_id": "ef8374649a8c", "returncode": 0, "seconds": 91.0}
+2026-11-05T16:27:17+00:00	worker:planner	lane_finished	{"artifacts": [], "attempt": 1, "lane": "planner", "log": "tickets/PROJ-123/run-1/logs/planner-a1.log", "otel": "ok", "outcome": "incomplete", "repo": "", "returncode": 0, "seconds": 91.2}
+2026-11-05T16:27:21+00:00	launcher	lane_started	{"attempt": 2, "command": "copilot", "dump": "otel-dump/PROJ-123/run-1/planner-a2-8dd3b7c02215.jsonl", "exporter": "file", "kind": "story", "lane": "planner", "launch_id": "8dd3b7c02215", "overlay": [], "repo": ""}
+2026-11-05T16:28:55+00:00	playbook	lane_cancelled	{"lane": "planner", "reason": "playbook action wiring reproduction cancelled"}
+2026-11-05T16:34:19+00:00	launcher	lane_started	{"attempt": 2, "command": "copilot", "dump": "otel-dump/PROJ-123/run-1/planner-a2-afc37270a14d.jsonl", "exporter": "file", "kind": "story", "lane": "planner", "launch_id": "afc37270a14d", "overlay": [], "repo": ""}
+2026-11-05T16:35:51+00:00	launcher	lane_exited	{"launch_id": "afc37270a14d", "returncode": 0, "seconds": 92.1}
+2026-11-05T16:35:52+00:00	worker:planner	lane_finished	{"artifacts": [], "attempt": 2, "lane": "planner", "log": "tickets/PROJ-123/run-1/logs/planner-a2.log", "otel": "ok", "outcome": "incomplete", "repo": "", "returncode": 0, "seconds": 92.2}
+2026-11-05T16:35:55+00:00	launcher	lane_started	{"attempt": 3, "command": "copilot", "dump": "otel-dump/PROJ-123/run-1/planner-a3-0e129e424677.jsonl", "exporter": "file", "kind": "story", "lane": "planner", "launch_id": "0e129e424677", "overlay": [], "repo": ""}
+2026-11-05T16:37:12+00:00	launcher	lane_exited	{"launch_id": "0e129e424677", "returncode": 0, "seconds": 77.2}
+2026-11-05T16:37:12+00:00	worker:planner	lane_finished	{"artifacts": [], "attempt": 3, "lane": "planner", "log": "tickets/PROJ-123/run-1/logs/planner-a3.log", "otel": "ok", "outcome": "incomplete", "repo": "", "returncode": 0, "seconds": 77.3}
+2026-11-05T16:37:15+00:00	orchestrator	lane_failed	{"lane": "planner", "reason": "more than 3 attempts", "repo": ""}

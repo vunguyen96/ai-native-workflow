@@ -1,0 +1,58 @@
+# One event per line, tab-separated: <iso-timestamp>  <actor>  <event>  <json>
+# Agents append proposed events (spec_gap, question_raised, escalate). The orchestrator applies them.
+# The launcher records lane_started / lane_exited with the launch_id used to join telemetry.
+2026-11-05T14:45:29+00:00	system	ticket_created	{"ticket": "CHORE-7", "run": 1, "kind": "chore", "origin": "", "prd_refs": []}
+2026-11-05T15:03:53+00:00	human	human_action_confirmed	{"action": "Fill artifacts/ticket-context.md, then: python scripts/wf_run.py ready --ticket CHORE-7 (it is missing)"}
+2026-11-05T15:03:55+00:00	human	human_action_confirmed	{"action": "Fill artifacts/ticket-context.md, then: python scripts/wf_run.py ready --ticket CHORE-7 (it is missing)"}
+2026-11-05T15:03:56+00:00	human	human_action_confirmed	{"action": "Fill artifacts/ticket-context.md, then: python scripts/wf_run.py ready --ticket CHORE-7 (it is missing)"}
+2026-11-05T15:03:57+00:00	human	human_action_confirmed	{"action": "Fill artifacts/ticket-context.md, then: python scripts/wf_run.py ready --ticket CHORE-7 (it is missing)"}
+2026-11-05T15:04:36+00:00	human	human_action_confirmed	{"action": "Fill artifacts/ticket-context.md, then: python scripts/wf_run.py ready --ticket CHORE-7 (it is missing)"}
+2026-11-05T15:05:07+00:00	human	human_action_confirmed	{"action": "Fill artifacts/ticket-context.md, then: python scripts/wf_run.py ready --ticket CHORE-7 (it is missing)"}
+2026-11-05T15:05:26+00:00	human	human_action_confirmed	{"action": "Fill artifacts/ticket-context.md, then: python scripts/wf_run.py ready --ticket CHORE-7 (it is missing)"}
+2026-11-05T15:07:37+00:00	vna96	artifact_ready	{"artifact": "ticket-context.md"}
+2026-11-05T15:11:03+00:00	launcher	lane_started	{"attempt": 1, "command": "copilot", "dump": "otel-dump/CHORE-7/run-1/planner-a1-07e9268e429a.jsonl", "exporter": "file", "kind": "chore", "lane": "planner", "launch_id": "07e9268e429a", "overlay": [], "repo": ""}
+2026-11-05T15:11:43+00:00	launcher	lane_exited	{"launch_id": "07e9268e429a", "returncode": 0, "seconds": 39.5}
+2026-11-05T15:11:43+00:00	worker:planner	lane_finished	{"artifacts": [], "attempt": 1, "lane": "planner", "log": "tickets/CHORE-7/run-1/logs/planner-a1.log", "otel": "ok", "outcome": "incomplete", "repo": "", "returncode": 0, "seconds": 39.6}
+2026-11-05T15:11:43+00:00	launcher	lane_started	{"attempt": 2, "command": "copilot", "dump": "otel-dump/CHORE-7/run-1/planner-a2-cfc3f40a3954.jsonl", "exporter": "file", "kind": "chore", "lane": "planner", "launch_id": "cfc3f40a3954", "overlay": [], "repo": ""}
+2026-11-05T15:12:31+00:00	launcher	lane_exited	{"launch_id": "cfc3f40a3954", "returncode": 0, "seconds": 47.7}
+2026-11-05T15:12:31+00:00	worker:planner	lane_finished	{"artifacts": [], "attempt": 2, "lane": "planner", "log": "tickets/CHORE-7/run-1/logs/planner-a2.log", "otel": "ok", "outcome": "incomplete", "repo": "", "returncode": 0, "seconds": 47.8}
+2026-11-05T15:12:34+00:00	launcher	lane_started	{"attempt": 3, "command": "copilot", "dump": "otel-dump/CHORE-7/run-1/planner-a3-3e0dc2da1390.jsonl", "exporter": "file", "kind": "chore", "lane": "planner", "launch_id": "3e0dc2da1390", "overlay": [], "repo": ""}
+2026-11-05T15:14:58+00:00	launcher	lane_exited	{"launch_id": "3e0dc2da1390", "returncode": 0, "seconds": 144.4}
+2026-11-05T15:14:58+00:00	worker:planner	lane_finished	{"artifacts": [], "attempt": 3, "lane": "planner", "log": "tickets/CHORE-7/run-1/logs/planner-a3.log", "otel": "ok", "outcome": "incomplete", "repo": "", "returncode": 0, "seconds": 144.5}
+2026-11-05T15:14:59+00:00	orchestrator	lane_failed	{"lane": "planner", "reason": "more than 3 attempts", "repo": ""}
+2026-11-05T15:16:50+00:00	orchestrator	artifact_status_synced	{"artifact": "spec.md", "source": "frontmatter", "status": "ready"}
+2026-11-05T15:24:51+00:00	orchestrator	artifact_status_synced	{"artifact": "ticket-context.md", "source": "frontmatter", "status": "draft"}
+2026-11-05T15:24:51+00:00	orchestrator	artifact_status_synced	{"artifact": "design.md", "source": "frontmatter", "status": "ready"}
+2026-11-05T15:24:51+00:00	orchestrator	lane_reopened	{"artifacts": ["spec.md", "design.md"], "lane": "planner", "reason": "artifact progress found during recheck"}
+2026-11-05T15:25:19+00:00	vna96	artifact_ready	{"artifact": "ticket-context.md"}
+2026-11-05T15:30:31+00:00	orchestrator	artifact_status_synced	{"artifact": "tasks.md", "source": "frontmatter", "status": "ready"}
+2026-11-05T15:30:49+00:00	vna96	gate_approved	{"artifacts": ["spec.md", "design.md", "tasks.md"], "gate": "planner"}
+2026-11-05T15:30:49+00:00	orchestrator	manifest_updated	{"deploy_order": "ordered", "repos": [], "sequence": ["shop-api", "shop-web"]}
+2026-11-05T15:31:14+00:00	human	human_action_confirmed	{"action": "List the repos from tasks.md in the manifest under lanes.dev.repos and artifacts.changes.per_repo"}
+2026-11-05T15:31:21+00:00	launcher	lane_started	{"attempt": 1, "command": "copilot", "dump": "otel-dump/CHORE-7/run-1/qe-a1-e53630383867.jsonl", "exporter": "file", "kind": "chore", "lane": "qe", "launch_id": "e53630383867", "overlay": [], "repo": ""}
+2026-11-05T15:32:07+00:00	orchestrator	artifact_status_synced	{"artifact": "test-plan.md", "source": "frontmatter", "status": "ready"}
+2026-11-05T15:32:24+00:00	human	human_action_confirmed	{"action": "List the repos from tasks.md in the manifest under lanes.dev.repos and artifacts.changes.per_repo"}
+2026-11-05T15:32:25+00:00	human	human_action_confirmed	{"action": "List the repos from tasks.md in the manifest under lanes.dev.repos and artifacts.changes.per_repo"}
+2026-11-05T15:32:26+00:00	human	human_action_confirmed	{"action": "List the repos from tasks.md in the manifest under lanes.dev.repos and artifacts.changes.per_repo"}
+2026-11-05T15:32:26+00:00	human	human_action_confirmed	{"action": "List the repos from tasks.md in the manifest under lanes.dev.repos and artifacts.changes.per_repo"}
+2026-11-05T15:32:31+00:00	human	human_action_confirmed	{"action": "List the repos from tasks.md in the manifest under lanes.dev.repos and artifacts.changes.per_repo"}
+2026-11-05T15:32:38+00:00	human	human_action_confirmed	{"action": "List the repos from tasks.md in the manifest under lanes.dev.repos and artifacts.changes.per_repo"}
+2026-11-05T15:32:50+00:00	human	human_action_confirmed	{"action": "List the repos from tasks.md in the manifest under lanes.dev.repos and artifacts.changes.per_repo"}
+2026-11-05T15:34:24+00:00	human	human_action_confirmed	{"action": "List the repos from tasks.md in the manifest under lanes.dev.repos and artifacts.changes.per_repo"}
+2026-11-05T15:36:33+00:00	orchestrator	artifact_status_synced	{"artifact": "verify-report.md", "source": "frontmatter", "status": "ready"}
+2026-11-05T15:39:38+00:00	orchestrator	artifact_status_synced	{"artifact": "changes/shop-api", "source": "repo_change_outputs", "status": "missing"}
+2026-11-05T15:39:38+00:00	orchestrator	artifact_status_synced	{"artifact": "changes/shop-web", "source": "repo_change_outputs", "status": "missing"}
+2026-11-05T15:45:16+00:00	orchestrator	artifact_status_synced	{"artifact": "changes/shop-api", "source": "repo_checkout", "source_hash": "d42e0522", "status": "draft"}
+2026-11-05T15:45:16+00:00	orchestrator	artifact_status_synced	{"artifact": "changes/shop-web", "source": "repo_checkout", "source_hash": "d42e0522", "status": "draft"}
+2026-11-05T15:45:54+00:00	orchestrator	artifact_status_synced	{"artifact": "changes/shop-api", "source": "file_missing", "status": "missing"}
+2026-11-05T15:45:54+00:00	orchestrator	artifact_status_synced	{"artifact": "changes/shop-web", "source": "file_missing", "status": "missing"}
+2026-11-05T15:45:54+00:00	orchestrator	artifact_status_synced	{"artifact": "changes/shop-api", "source": "repo_checkout", "source_hash": "fc04b6d0", "status": "draft"}
+2026-11-05T15:45:54+00:00	orchestrator	artifact_status_synced	{"artifact": "changes/shop-web", "source": "repo_change_outputs", "source_hash": null, "status": "missing"}
+2026-11-05T15:47:09+00:00	orchestrator	artifact_status_synced	{"artifact": "changes/shop-api", "source": "file_missing", "status": "missing"}
+2026-11-05T15:47:09+00:00	orchestrator	artifact_status_synced	{"artifact": "changes/shop-api", "source": "repo_change_outputs", "source_hash": null, "status": "missing"}
+2026-11-05T15:47:16+00:00	orchestrator	artifact_status_synced	{"artifact": "changes/shop-api", "source": "repo_checkout", "source_hash": "f7ef388c", "status": "draft"}
+2026-11-05T15:48:25+00:00	orchestrator	artifact_status_synced	{"artifact": "review-report.md", "source": "frontmatter", "status": "ready"}
+2026-11-05T15:52:15+00:00	orchestrator	risk_decision_applied	{"human_required": true}
+2026-11-05T15:53:52+00:00	vna96	gate_approved	{"artifacts": ["review-report.md"], "gate": "reviewer"}
+2026-11-05T16:09:05+00:00	orchestrator	artifact_status_synced	{"artifact": "inspection-report.md", "source": "frontmatter", "status": "ready"}
+2026-11-05T16:17:35+00:00	orchestrator	artifact_status_synced	{"artifact": "acceptance-report.md", "source": "file_present", "status": "draft"}

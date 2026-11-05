@@ -1,0 +1,82 @@
+# Written by the orchestrator side (scripts/wf_state.py). Agents never edit this file.
+ticket: CHORE-7
+run: 1
+kind: chore
+origin: ''
+prd_refs: []
+overlay_active: {}
+lanes:
+  planner: {status: waiting, retry_after_recheck: true}
+  qe: {status: working}
+  dev:
+    status: waiting
+    repos: {}
+  reviewer: {status: waiting}
+  inspect-adapt: {status: waiting}
+artifacts:
+  ticket-context.md:
+    owner: system
+    status: ready
+    hash: e5246b85
+    inputs: {}
+  spec.md:
+    owner: planner
+    status: approved
+    hash: cffb7373
+    inputs: {ticket-context.md: e5246b85}
+    approved_by: vna96
+  design.md:
+    owner: planner
+    status: approved
+    hash: 5c5bf65b
+    inputs: {ticket-context.md: e5246b85, spec.md: cffb7373}
+    approved_by: vna96
+  tasks.md:
+    owner: planner
+    status: approved
+    hash: 8f2edc7b
+    inputs: {ticket-context.md: e5246b85, spec.md: cffb7373, design.md: 5c5bf65b}
+    approved_by: vna96
+  test-plan.md:
+    owner: qe
+    status: ready
+    hash: 31dc13fb
+    inputs: {spec.md: cffb7373, tasks.md: 8f2edc7b}
+  changes:
+    owner: dev
+    status: draft
+    per_repo:
+      shop-api:
+        status: draft
+        inputs: {spec.md: cffb7373, design.md: 5c5bf65b, tasks.md: 8f2edc7b}
+        source_hash: f7ef388c
+      shop-web:
+        status: missing
+        inputs: {spec.md: cffb7373, design.md: 5c5bf65b, tasks.md: 8f2edc7b}
+  verify-report.md:
+    owner: reviewer
+    status: ready
+    hash: d0f24aa4
+    inputs: {test-plan.md: 31dc13fb}
+  review-report.md:
+    owner: reviewer
+    status: approved
+    hash: bf45e882
+    inputs: {test-plan.md: 31dc13fb}
+    approved_by: vna96
+  acceptance-report.md:
+    owner: system
+    status: draft
+    hash: 57d077dc
+    inputs: {}
+  inspection-report.md:
+    owner: inspect-adapt
+    status: ready
+    hash: bb648646
+    inputs: {review-report.md: bf45e882}
+release:
+  deploy_order: ordered
+  sequence: [shop-api, shop-web]
+  repos: {}
+review: {human_required: true}
+acceptance: {policy: tbd, ticket_accepted: null, signed_off_by: null, requirement_accepted: null}

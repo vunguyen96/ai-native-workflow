@@ -19,6 +19,8 @@ python scripts/wf_run.py ready --ticket PROJ-1                 # intake done: th
 python scripts/wf_run.py start --ticket PROJ-1                 # the one trigger
 ```
 
+Use `python scripts/wf_run.py recheck --ticket T` to reconcile artifact frontmatter and repo change outputs with the run manifest. Repo changes are ready when `diff.patch`, `notes.md`, and `local-verify.md` are present; uncommitted changes in a registered checkout appear as draft. For a ready review report, recheck copies its explicit `human_required` decision into the manifest. Ticket context remains controlled by the explicit `ready` command. If a failed lane has draft/ready outputs, recheck reopens it and resets its retry budget.
+
 `start` launches one worker per lane (plus `ci`, the CI/CD stand-in, for stories and chores) and prints what they do. It stops when the ticket is Done or Escalated. Add `--verbose` to see the agents' output; it is always saved to `logs/` in the run folder.
 
 ## What humans do

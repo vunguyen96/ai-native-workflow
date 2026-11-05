@@ -125,27 +125,34 @@ class Run:
     def path_of(self, key, repo=None):
         return self.art / "changes" / repo if repo else self.art / key
 
-    def mark(self, key, status, inputs=(), approved_by=None, repo=None, version=None):
+    def mark(self, key, status, inputs=None, approved_by=None, repo=None, version=None):
         """Set an artifact's status and record its hash and the hashes of the inputs it was built from."""
         def fn(m):
             arts = m.setdefault("artifacts", {})
             if repo:
                 ch = arts.setdefault("changes", {"owner": "dev", "status": "missing"})
                 e = ch.setdefault("per_repo", {}).get(repo) or {}
-                path = self.art / "changes" / repo
+                path = S.artifact_path(self.dir, f"changes/{repo}")
             else:
                 e = arts.get(key) or {"owner": "system"}
-                path = self.art / key
+                path = S.artifact_path(self.dir, key)
             e["status"] = status
             if version:
                 e["version"] = version
-            if path.exists():
+            if path is not None and path.exists():
                 e["hash"] = short_hash(path)
-            ins = {i: short_hash(self.art / i) for i in inputs if (self.art / i).exists()}
-            if ins:
-                e["inputs"] = ins
+            else:
+                e.pop("hash", None)
+            if inputs is not None:
+                e["inputs"] = {
+                    i: short_hash(input_path)
+                    for i in inputs
+                    if (input_path := S.artifact_path(self.dir, i)) is not None and input_path.exists()
+                }
             if approved_by:
                 e["approved_by"] = approved_by
+            elif status != "approved":
+                e.pop("approved_by", None)
             if repo:
                 ch["per_repo"][repo] = e
                 vals = [x.get("status") for x in ch["per_repo"].values()]
@@ -162,6 +169,8 @@ class Run:
                 ent.setdefault("repos", {})[repo] = status
             else:
                 ent["status"] = status
+                if status != "waiting":
+                    ent.pop("retry_after_recheck", None)
             lanes[lane] = ent
         self.update(fn)
 
@@ -200,6 +209,18 @@ class Run:
         return sum(1 for e in self.events()
                    if e["event"] == "lane_finished" and e["detail"].get("lane") == lane
                    and (e["detail"].get("repo") or "") == (repo or ""))
+
+    def attempts_in_cycle(self, lane, repo=""):
+        """How many sessions finished since this lane instance was last reopened."""
+        events = self.events()
+        start = 0
+        for index, event in enumerate(events):
+            if event["event"] == "lane_reopened" and event["detail"].get("lane") == lane \
+                    and (event["detail"].get("repo") or "") == (repo or ""):
+                start = index + 1
+        return sum(1 for event in events[start:]
+                   if event["event"] == "lane_finished" and event["detail"].get("lane") == lane
+                   and (event["detail"].get("repo") or "") == (repo or ""))
 
     def last_outcome(self, lane, repo=""):
         """Outcome of the most recent finished session of this lane instance: ok | incomplete | crashed | None."""

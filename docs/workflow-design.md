@@ -68,6 +68,7 @@ Naming rule: lanes are roles; artifacts are nouns with a suffix (`-plan`, `-repo
 ### Artifacts
 
 Every artifact carries a status and the hashes of the inputs it was built from.
+When a tracked artifact file is present but has no recognized readiness status, it is shown and recorded as **draft**; mark it ready explicitly when its content is complete. A file's presence alone does not approve a gate or accept a ticket.
 
 ```mermaid
 stateDiagram-v2

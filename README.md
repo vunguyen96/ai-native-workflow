@@ -75,6 +75,8 @@ To see a whole ticket run without real repos or agents: `python demo/demo.py set
 
 An animated overview with the demo (about 2 minutes, open in a browser) is in [docs/presentation/workflow-animation.html](docs/presentation/workflow-animation.html). It pauses by itself after every scene and every demo step so you can talk; Space continues, PageDown and PageUp jump between sections, and `?breakpoints=0` turns the pauses off.
 
+For a live status board with clickable workflow controls, follow [playbook/README.md](playbook/README.md). It derives ticket, lane, and artifact statuses through `wf_status.py`; controls invoke the existing `new_ticket.py` and `wf_run.py` scripts. The server binds to localhost only.
+
 `wf_launch.py` turns on the Copilot OTel file exporter, tags the session with `workflow.*` attributes (ticket, kind, run, lane, repo, attempt, launch_id, active overlay candidates), writes the dump under `otel-dump/`, and logs `lane_started` and `lane_exited` in `events.log`. `otel_check.py` verifies the attributes and token counts and writes a summary to the ticket's `metrics/` folder. Run it after every lane session; `missing` or `incomplete` stops Inspect & Adapt from drawing conclusions about that lane.
 
 For VS Code sessions, attributes are per window, not per lane. Use `--print-env` to see the variables, or record the `session.id` for the lane in `events.log` and join on it.

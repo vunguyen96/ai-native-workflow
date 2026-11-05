@@ -9,3 +9,4 @@ ORDERS = {
 def get_order(order_id):
     """Return a copy of the order, or raise KeyError."""
     return dict(ORDERS[order_id])
+
